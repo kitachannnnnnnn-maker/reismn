@@ -3,16 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>るんるんリズム「りずむん」 Ver. 1.8</title>
+    <title>るんるんリズム「りずむん」 Ver. 1.9</title>
     <style>
         * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-       body {
+        body {
             margin: 0; background-color: #f7f9fc; font-family: 'Helvetica Neue', Arial, sans-serif;
             display: flex; flex-direction: column; align-items: center;
             min-height: 100vh;
-            overflow-y: auto; /* ここで縦スクロールを許可します */
-            padding: 20px 0;   /* 画面端にくっつかないように余白を追加 */
+            overflow-y: auto;
+            padding: 20px 0;
         }
+#result-screen {
+    background: linear-gradient(135deg, #ffeaa7, #fab1a0);
+    text-align: center;
+    padding: 20px;
+}
+.result-card {
+    background: white; padding: 40px; border-radius: 40px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.15); border: 8px solid white;
+}
+#result-rank-msg { font-size: 2rem; font-weight: 900; color: #d63031; margin: 20px 0; }
+#result-detail { font-size: 1.5rem; color: #636e72; margin-bottom: 30px; }
         #setup-screen, #game-screen, #result-screen {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             width: 100%; height: 100%; position: absolute; top: 0; left: 0;
@@ -133,13 +144,21 @@
         .tap-trigger-btn:active {
             transform: translateY(4px); box-shadow: 0 2px 0 #c0392b;
         }
+/* ぴったんこ時に星が飛び散るアニメーション */
+@keyframes starBurst {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(3) translate(var(--dx), var(--dy)); opacity: 0; }
+}
+.star-particle {
+    position: absolute; width: 20px; height: 20px; font-size: 20px;
+    z-index: 100; pointer-events: none;
+}
     </style>
 </head>
 <body>
-
     <div id="setup-screen">
         <h1>りずむん 🎵 おもちゃの音楽スタジオ</h1>
-        <div class="version-tag">Ver. 1.8 (バグ修正版)</div>
+        <div class="version-tag">Ver. 1.9 (バグ修正版)</div>
         
         <div class="config-box">
             <div class="config-row">
@@ -176,9 +195,9 @@
                 <div class="config-group">
                     <label>🎙️ 音の感知しやすさ</label>
                     <select id="config-mic-sensitivity">
-                        <option value="low" selected>ひかえめ (誤反応しにくい)</option>
+                        <option value="low" >ひかえめ (誤反応しにくい)</option>
                         <option value="normal">ふつう</option>
-                        <option value="high">たかめ (小さな音も拾う)</option>
+                        <option value="high" selected>たかめ (小さな音も拾う)</option>
                     </select>
                 </div>
             </div>
@@ -237,9 +256,12 @@
     </div>
 
     <div id="result-screen">
-        <div id="result-status" class="result-status">🎉 レッスンおわり！</div>
-        <div id="result-rank-msg">すばらしいリズム感！</div>
-        <button class="retry-btn" onclick="backToSetup()">もういちど遊ぶ</button>
+        <div class="result-card">
+            <div id="result-status" style="font-size: 4rem;">🎉</div>
+            <div id="result-rank-msg"></div>
+            <div id="result-detail"></div>
+            <button class="retry-btn" onclick="backToSetup()">もういちど遊ぶ</button>
+        </div>
     </div>
 
     <script>
@@ -267,6 +289,24 @@
             { value: 1, text: 'ウン', symbol: '𝄽', type: 'un' }
         ];
 
+function spawnStars(x, y) {
+    for (let i = 0; i < 8; i++) {
+        const star = document.createElement('div');
+        star.className = 'star-particle';
+        star.innerText = '⭐';
+        star.style.left = x + 'px';
+        star.style.top = y + 'px';
+        // 飛び散る方向をランダムに
+        const dx = (Math.random() - 0.5) * 150 + 'px';
+        const dy = (Math.random() - 0.5) * 150 + 'px';
+        star.style.setProperty('--dx', dx);
+        star.style.setProperty('--dy', dy);
+        star.style.animation = 'starBurst 0.6s ease-out forwards';
+        document.getElementById('game-screen').appendChild(star);
+        setTimeout(() => star.remove(), 600);
+    }
+}
+
         window.onload = function() { 
             onNumeratorChange(); 
             window.addEventListener('keydown', function(e) {
@@ -283,6 +323,36 @@
             tapBtn.addEventListener('touchstart', (e) => { e.preventDefault(); if (gameActive) { micIgnoreTimeoutTicks = 15; onClapDetected(); }});
         };
 
+// 終了時の音を鳴らす関数
+        // 【差し替え】ファンファーレと拍手
+function playEndSound() {
+    if (!audioContext) return;
+    const now = audioContext.currentTime;
+    // ファンファーレ（簡単な3音）
+    const notes = [523.25, 659.25, 783.99]; // ド・ミ・ソ
+    notes.forEach((freq, i) => {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.frequency.setValueAtTime(freq, now + (i * 0.2));
+        gain.gain.setValueAtTime(0.3, now + (i * 0.2));
+        gain.gain.exponentialRampToValueAtTime(0.01, now + (i * 0.2) + 0.5);
+        osc.connect(gain); gain.connect(audioContext.destination);
+        osc.start(now + (i * 0.2)); osc.stop(now + (i * 0.2) + 0.5);
+    });
+    // 拍手音（ノイズを細かく叩く）
+    for(let i=0; i<10; i++) {
+        const buffer = audioContext.createBuffer(1, 1000, audioContext.sampleRate);
+        const data = buffer.getChannelData(0);
+        for(let j=0; j<1000; j++) data[j] = Math.random() * 2 - 1;
+        const source = audioContext.createBufferSource();
+        source.buffer = buffer;
+        const gain = audioContext.createGain();
+        gain.gain.setValueAtTime(0.2, now + 1.0 + (i * 0.1));
+        gain.gain.linearRampToValueAtTime(0, now + 1.0 + (i * 0.1) + 0.1);
+        source.connect(gain); gain.connect(audioContext.destination);
+        source.start(now + 1.0 + (i * 0.1));
+    }
+}
         function onNumeratorChange() { numerator = parseInt(document.getElementById('config-numerator').value); renderBlocks(); }
         
         function addBlock(val, txt, sym) {
@@ -324,7 +394,8 @@
                 btnList.forEach(b => b.disabled = false);
             }
         }
-function scheduleMetronome(beatCount, time) {
+        
+        function scheduleMetronome(beatCount, time) {
             if (!audioContext) return;
             let osc = audioContext.createOscillator(); let gain = audioContext.createGain();
             let isHeader = (beatCount % numerator === 0);
@@ -359,28 +430,27 @@ function scheduleMetronome(beatCount, time) {
                     analyser = audioContext.createAnalyser(); analyser.fftSize = 256;
                     audioContext.createMediaStreamSource(stream).connect(analyser);
                     dataArray = new Uint8Array(analyser.frequencyBinCount);
-                } else { analyser = null; }
+                }
 
                 numerator = parseInt(document.getElementById('config-numerator').value);
                 bpm = parseInt(document.getElementById('config-bpm').value);
                 const loopCount = parseInt(document.getElementById('config-loop-count').value);
-                const beatDurationSec = 60 / bpm;
-
-                document.getElementById('ts-top').innerText = numerator;
-                document.getElementById('ts-bottom').innerText = denominator;
-                document.getElementById('hud-time-sig').innerText = `${numerator}/${denominator}拍子 BPM:${bpm}`;
 
                 document.getElementById('setup-screen').style.display = 'none';
-                document.getElementById('result-screen').style.display = 'none';
                 document.getElementById('game-screen').style.display = 'flex';
 
-                processedCount = 0;
-                document.getElementById('hud-score').innerText = `リズム評価: まだたたいていないよ`;
-                document.getElementById('judge-text').innerText = ``;
-
+                // --- 修正箇所：ここから ---
+                // ゲーム開始前の準備期間（リードイン）を1小節分に設定
                 totalBeatsToPlay = currentBlocks.length * loopCount;
-                gameStartTime = audioContext.currentTime + 2.0; 
-                nextScheduleBeat = 0; beatsScheduledCount = 0;
+                let leadInBeats = numerator; 
+                
+                // 開始時間を「2秒先 ＋ 1小節分」に設定
+                gameStartTime = audioContext.currentTime + 2.0 + (leadInBeats * (60 / bpm)); 
+                
+                // カウントを負の値から始めることで、1小節分のメトロノーム先行再生を作る
+                nextScheduleBeat = -leadInBeats;
+                beatsScheduledCount = -leadInBeats;
+                // --- 修正箇所：ここまで ---
 
                 generateCustomScore(loopCount, 240);
                 gameActive = true; 
@@ -388,7 +458,6 @@ function scheduleMetronome(beatCount, time) {
                 gameLoop();
             } catch (err) { alert("マイク設定が許可されていないか、エラーが発生しました。"); }
         }
-
         function generateCustomScore(loopCount, beatWidth) {
             let currentOffsetTime = 2.0; 
             let beatDurationSec = 60 / bpm;
@@ -435,7 +504,15 @@ function scheduleMetronome(beatCount, time) {
                     else { perfectCount++; showJudge('おみごと！', 'perfect', ''); triggerCharaReaction('success'); }
                     updateHUD();
                 }
-                if (currentX < -60) { note.el.remove(); notesList.splice(i, 1); if (notesList.length === 0 && processedCount >= totalNotes) { gameActive = false; setTimeout(showResult, 500); } }
+                if (currentX < -60) {
+                    note.el.remove();
+                    notesList.splice(i, 1);
+                    // 終了判定を少し遅らせて余韻を作る
+                    if (notesList.length === 0 && beatsScheduledCount >= totalBeatsToPlay) {
+                        gameActive = false;
+                        setTimeout(showResult, 800);
+                    }
+                }
             }
             for (let i = barLinesList.length - 1; i >= 0; i--) {
                 let bar = barLinesList[i];
@@ -465,9 +542,22 @@ function scheduleMetronome(beatCount, time) {
             let closestNote = null, minDiff = 999, elapsed = audioContext.currentTime - (gameStartTime - 2.0);
             for (let n of notesList) if (!n.hit) { let d = elapsed - n.targetTime; if (Math.abs(d) < Math.abs(minDiff)) { minDiff = d; closestNote = n; } }
             if (!closestNote || Math.abs(minDiff) > 0.25) return;
-            closestNote.hit = true; processedCount++;
+            
+            closestNote.hit = true;
+            closestNote.el.remove(); // 叩けた音符を画面から消す
+            processedCount++;
+            
+
+　　　　　　　//判定の甘さ
             if (closestNote.type === 'clap') {
-                if (Math.abs(minDiff) < 0.05) { perfectCount++; showJudge('ぴったんこ！', 'perfect'); addCombo(); triggerCharaReaction('success'); }
+               if (Math.abs(minDiff) < 0.07) {
+    perfectCount++; 
+    playJudgeSound(true);
+    // ★星を飛び散らせる（画面上の場所を指定）
+    spawnStars(200, 150); 
+    j.innerHTML = `<span class="perfect">ぴったんこ！<br>⭐⭐⭐</span>`;
+    addCombo(); triggerCharaReaction('success');
+}
                 else { goodCount++; showJudge('いいね！', 'good', (minDiff < 0 ? 'はやい！' : 'おそい！'), (minDiff < 0 ? 'early-tag' : 'late-tag')); addCombo(); triggerCharaReaction('success'); }
             } else { missCount++; showJudge('あちゃー！', 'miss', 'ウンだよ！', 'early-tag'); breakCombo(); triggerCharaReaction('miss'); }
             updateHUD();
@@ -489,11 +579,23 @@ function scheduleMetronome(beatCount, time) {
             document.getElementById('hud-info').innerText = `のこり:${Math.max(0, totalNotes - processedCount)}こ`;
         }
 
-        function showResult() {
-            gameActive = false; document.getElementById('game-screen').style.display = 'none'; document.getElementById('result-screen').style.display = 'flex';
-            let total = perfectCount + goodCount + missCount, ratio = perfectCount / total;
-            document.getElementById('result-rank-msg').innerText = ratio > 0.7 ? "👑 神レベル！" : (ratio > 0.4 ? "👍 ナイス演奏！" : "🐱 どんまい！");
-        }
+      // 【差し替え】結果表示の強化
+function showResult() {
+    gameActive = false;
+    playEndSound(); 
+    document.getElementById('game-screen').style.display = 'none';
+    document.getElementById('result-screen').style.display = 'flex';
+    
+    const total = perfectCount + goodCount + missCount;
+    const perfectRate = total > 0 ? (perfectCount / total) * 100 : 0;
+    
+    document.getElementById('result-rank-msg').innerText = 
+        perfectRate > 80 ? "👑 神レベル！リズムの達人！" : 
+        perfectRate > 50 ? "✨ すごい！とっても上手！" : "🐱 また練習しよう！";
+    
+    document.getElementById('result-detail').innerHTML = 
+        `ぴったんこ: ${perfectCount}回<br>いい感じ: ${goodCount}回<br>ミス: ${missCount}回`;
+}
 
         function stopGame() { gameActive = false; document.querySelectorAll('.note, .bar-line').forEach(n => n.remove()); backToSetup(); }
         function backToSetup() {
