@@ -206,6 +206,7 @@
                 <div class="editor-header">
                     <label style="font-weight: bold; color: #444; font-size: 1.1rem;">⑤ 音符ブロックをならべよう！</label>
                     <button class="btn-clear" onclick="clearAllBlocks()">🗑️ がくふをぜんぶ消す</button>
+                    <button class="btn-clear" onclick="generateRandomScore()" style="background-color: #f1c40f;">🎲 自動で作る</button>
                 </div>
                 <div class="block-buttons">
                     <button id="btn-add-tan" class="block-btn btn-tan" onclick="addBlock(1, 'タン', '♩')">♩ タン</button>
@@ -600,6 +601,24 @@ function onClapDetected() {
             document.getElementById('hud-info').innerText = `のこり:${Math.max(0, totalNotes - processedCount)}こ`;
         }
 
+        //ランダムで追加しいたもの
+function generateRandomScore() {
+    clearAllBlocks(); // 一旦リセット
+    const targetBars = parseInt(document.getElementById('config-bars').value);
+    const totalBeats = numerator * targetBars;
+    const options = [
+        { val: 1, txt: 'タン', sym: '♩', type: 'tan' },
+        { val: 1, txt: 'タタ', sym: '♪♪', type: 'tata' },
+        { val: 1, txt: 'ウン', sym: '𝄽', type: 'un' }
+    ];
+
+    for (let i = 0; i < totalBeats; i++) {
+        // ランダムに音符を選択
+        const rand = options[Math.floor(Math.random() * options.length)];
+        currentBlocks.push({ ...rand });
+    }
+    renderBlocks(); // 画面を更新
+}
       // 【差し替え】結果表示の強化
 function showResult() {
     gameActive = false;
