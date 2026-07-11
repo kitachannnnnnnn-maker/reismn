@@ -158,7 +158,7 @@
 <body>
     <div id="setup-screen">
         <h1>りずむん 🎵 おもちゃの音楽スタジオ</h1>
-        <div class="version-tag">Ver. 1.9 (バグ修正版)</div>
+        <div class="version-tag">Ver. 1.9 </div>
         
         <div class="config-box">
             <div class="config-row">
@@ -550,7 +550,7 @@ function playEndSound() {
 
 　　　　　　　//判定の甘さ
             if (closestNote.type === 'clap') {
-               if (Math.abs(minDiff) < 0.07) {
+               if (Math.abs(minDiff) < 0.09) {
     perfectCount++; 
     playJudgeSound(true);
     // ★星を飛び散らせる（画面上の場所を指定）
