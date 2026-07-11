@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>るんるんリズム「りずむん」 Ver. 1.8</title>
+    <style>
+        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+        body {
+            margin: 0; background-color: #f7f9fc; font-family: 'Helvetica Neue', Arial, sans-serif;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; overflow: hidden;
+        }
+        #setup-screen, #game-screen, #result-screen {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+        }
+        #game-screen, #result-screen { display: none; }
+        h1 { color: #ff7675; font-size: 2.2rem; margin-bottom: 5px; text-shadow: 2px 2px 0px #fff; }
+        .version-tag { font-size: 0.9rem; color: #b2bec3; margin-bottom: 15px; font-weight: bold; }
+        
+        .config-box {
+            background: white; padding: 20px; border-radius: 24px; box-shadow: 0 12px 30px rgba(0,0,0,0.04);
+            margin-bottom: 15px; width: 95%; max-width: 750px; display: flex; flex-direction: column; gap: 12px;
+            border: 3px solid #ffeaa7;
+        }
+        .config-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+        .config-group { display: flex; flex-direction: column; gap: 5px; font-weight: bold; color: #555; flex: 1; min-width: 140px; }
+        .config-group select, .config-group input {
+            padding: 10px; font-size: 1.1rem; border: 2px solid #ffeaa7; border-radius: 12px; background: #fffdf6; font-weight: bold; color: #2d3436;
+        }
+
+        .editor-container { background: #fffdf0; padding: 15px; border-radius: 16px; border: 2px dashed #fab1a0; }
+        .editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .block-buttons { display: flex; gap: 10px; margin-bottom: 12px; justify-content: center; }
+        .block-btn {
+            padding: 12px 25px; font-size: 1.2rem; font-weight: bold; border: none; border-radius: 14px; cursor: pointer;
+            box-shadow: 0 5px 0 #e67e22; transition: transform 0.05s;
+        }
+        .btn-tan { background-color: #ffeaa7; color: #d63031; box-shadow: 0 5px 0 #f39c12; }
+        .btn-tata { background-color: #ff7675; color: #fff; box-shadow: 0 5px 0 #c0392b; }
+        .btn-un { background-color: #fab1a0; color: #fff; box-shadow: 0 5px 0 #d35400; }
+        .btn-clear { background-color: #74b9ff; color: white; padding: 8px 14px; font-size: 0.9rem; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; box-shadow: 0 3px 0 #0984e3; }
+        
+        .block-btn:disabled { background-color: #b2bec3 !important; color: #666 !important; box-shadow: 0 5px 0 #7f8c8d !important; cursor: not-allowed; opacity: 0.6; }
+        .block-btn:active:not(:disabled), .btn-clear:active { transform: translateY(3px); box-shadow: none; }
+
+        #editor-status-msg { font-size: 1.1rem; font-weight: bold; text-align: center; margin-bottom: 10px; color: #2ed573; }
+
+        .preview-lane { display: flex; gap: 8px; background: white; padding: 15px; border-radius: 14px; min-height: 110px; align-items: center; overflow-x: auto; border: 2px solid #ffeaa7; }
+        .preview-block { padding: 8px 12px; background: #f1f2f6; border-radius: 10px; font-weight: bold; font-size: 1rem; position: relative; display: flex; flex-direction: column; align-items: center; min-width: 70px; border: 2px solid #dfe6e9; }
+        .preview-block .symbol { font-family: serif; font-size: 2.4rem; margin-top: -5px; line-height: 1; color: #2d3436; }
+        .preview-block .remove-tag { position: absolute; top: -6px; right: -6px; background: #ff7675; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; }
+
+        .editor-bar-line { width: 4px; height: 80px; background-color: #74b9ff; border-radius: 2px; margin: 0 6px; flex-shrink: 0; position: relative; }
+        .editor-bar-line::after { content: '小節'; position: absolute; top: -18px; left: -12px; font-size: 0.75rem; color: #74b9ff; font-weight: bold; }
+
+        #start-btn, .retry-btn { padding: 16px 60px; font-size: 1.6rem; font-weight: bold; background-color: #ff7675; color: white; border: none; border-radius: 40px; cursor: pointer; box-shadow: 0 6px 0 #c0392b; }
+        #start-btn:active { transform: translateY(3px); box-shadow: none; }
+        #start-btn:disabled { background-color: #b2bec3; cursor: not-allowed; box-shadow: none; }
+
+        #game-screen { background: radial-gradient(circle, #fffdf0 60%, #fffae6 100%); }
+        .header-controls { display: flex; justify-content: space-between; align-items: center; width: 95%; max-width: 800px; margin-bottom: 5px; z-index: 15; }
+        .hud-text { font-size: 1.3rem; font-weight: bold; color: #2d3436; }
+        .control-btn { padding: 8px 18px; font-size: 1rem; font-weight: bold; background-color: #a29bfe; color: white; border: none; border-radius: 15px; cursor: pointer; box-shadow: 0 3px 0 #6c5ce7; }
+        
+        #character-stage { width: 200px; height: 160px; position: relative; display: flex; justify-content: center; align-items: flex-end; margin-bottom: 10px; }
+        #chara-body { font-size: 6.5rem; line-height: 1; transition: transform 0.1s ease-out; transform-origin: bottom center; }
+        
+        .dance-left { transform: scaleX(1) rotate(-8deg); }
+        .dance-right { transform: scaleX(-1) rotate(-8deg); }
+        .jump-success { animation: charaJump 0.25s ease-out forwards; }
+        .shock-miss { animation: charaShock 0.35s ease-in-out forwards; }
+
+        @keyframes charaJump {
+            0% { transform: scale(1) translateY(0); }
+            40% { transform: scale(1.15, 0.85) translateY(-35px); }
+            100% { transform: scale(1) translateY(0); }
+        }
+        @keyframes charaShock {
+            0% { transform: scale(1) translateX(0); }
+            20% { transform: scale(0.9, 1.1) translateX(-8px); }
+            60% { transform: translateX(8px); }
+            100% { transform: scale(1) translateX(0); }
+        }
+
+        #combo-box { font-size: 2.2rem; font-weight: 900; color: #fdcb6e; height: 35px; margin-bottom: 5px; text-shadow: -1px -1px 0 #2d3436, 1px -1px 0 #2d3436, -1px 1px 0 #2d3436, -1px 1px 0 #2d3436; visibility: hidden; z-index: 15; }
+        .note { width: 60px; height: 80px; position: absolute; top: 15px; display: flex; align-items: center; justify-content: center; font-size: 4.5rem; z-index: 5; font-family: serif; color: #2d3436; }
+        .note-tata { font-size: 3.8rem; top: 22px; color: #e17055; }
+        .note-rest { font-size: 3.8rem; top: 20px; color: #74b9ff; }
+
+        #judge-text { font-size: 2.5rem; font-weight: bold; height: 45px; margin-bottom: 5px; z-index: 15; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .sub-judge { font-size: 1.1rem; font-weight: 800; margin-top: -2px; letter-spacing: 1px; padding: 2px 8px; border-radius: 6px; }
+        .perfect { color: #e67e22; text-shadow: 1px 1px 0 #fff; } 
+        .good { color: #2ed573; } 
+        .miss { color: #d63031; }
+        .early-tag { background-color: #ff7675; color: white; }
+        .late-tag { background-color: #74b9ff; color: white; }
+
+        #score-lane { width: 95%; max-width: 800px; height: 160px; background-color: #ffffff; border: 4px solid #6c5ce7; border-radius: 20px; position: relative; overflow: hidden; margin-bottom: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.05); z-index: 10; }
+        .staff-line { position: absolute; left: 0; width: 100%; height: 2px; background-color: #dfe6e9; }
+        .sl1 { top: 40px; } .sl2 { top: 60px; } .sl3 { top: 80px; } .sl4 { top: 100px; } .sl5 { top: 120px; }
+        
+        #time-signature-mark { position: absolute; left: 15px; top: 35px; font-size: 3.2rem; font-weight: bold; display: flex; flex-direction: column; align-items: center; line-height: 0.85; color: #6c5ce7; font-family: serif; }
+        .bar-line { position: absolute; top: 40px; width: 4px; height: 80px; background-color: #6c5ce7; z-index: 2; }
+        #target-zone { width: 80px; height: 80px; border: 6px dashed #ff7675; border-radius: 50%; position: absolute; left: 120px; top: 40px; background-color: rgba(255,234,234,0.6); display: flex; align-items: center; justify-content: center; font-weight: bold; color: #ff7675; z-index: 10; }
+        
+        #don-effect {
+            position: absolute; left: 100px; top: -15px; font-size: 2.8rem; font-weight: 900; color: #ffeaa7;
+            text-shadow: -2px -2px 0 #d63031, 2px -2px 0 #d63031, -2px 2px 0 #d63031, 2px 2px 0 #d63031;
+            z-index: 12; pointer-events: none; opacity: 0; transform: scale(0.5);
+        }
+        @keyframes donPop {
+            0% { opacity: 1; transform: scale(var(--combo-scale, 0.7)) rotate(-10deg); }
+            50% { transform: scale(calc(var(--combo-scale, 0.7) * 1.4)) rotate(15deg); }
+            100% { opacity: 0; transform: scale(var(--combo-scale, 0.7)) rotate(0deg); }
+        }
+
+        .tap-action-container {
+            width: 95%; max-width: 500px; margin-top: 5px; z-index: 20;
+            touch-action: manipulation;
+        }
+        .tap-trigger-btn {
+            width: 100%; padding: 18px; font-size: 1.6rem; font-weight: bold;
+            background: linear-gradient(135deg, #ff7675, #e17055); color: white;
+            border: none; border-radius: 20px; cursor: pointer;
+            box-shadow: 0 6px 0 #c0392b; transition: transform 0.05s;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+            touch-action: none;
+        }
+        .tap-trigger-btn:active {
+            transform: translateY(4px); box-shadow: 0 2px 0 #c0392b;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="setup-screen">
+        <h1>りずむん 🎵 おもちゃの音楽スタジオ</h1>
+        <div class="version-tag">Ver. 1.8 (バグ修正版)</div>
+        
+        <div class="config-box">
+            <div class="config-row">
+                <div class="config-group">
+                    <label>① 拍子</label>
+                    <select id="config-numerator" onchange="onNumeratorChange()">
+                        <option value="4" selected>4 拍子</option>
+                        <option value="3">3 拍子</option>
+                        <option value="2">2 拍子</option>
+                        <option value="5">5 拍子</option>
+                        <option value="6">6 拍子</option>
+                    </select>
+                </div>
+                <div class="config-group">
+                    <label>② フレーズの長さ</label>
+                    <select id="config-bars" onchange="renderBlocks()">
+                        <option value="1" selected>1 小節だけ作る</option>
+                        <option value="2">2 小節つなげて作る</option>
+                        <option value="4">4 小節長く作る</option>
+                    </select>
+                </div>
+                <div class="config-group">
+                    <label>③ はやさ</label>
+                    <input type="number" id="config-bpm" value="100" min="50" max="180">
+                </div>
+                <div class="config-group">
+                    <label>④ 何回くり返す？</label>
+                    <select id="config-loop-count">
+                        <option value="2">2 回くり返す</option>
+                        <option value="3" selected>3 回くり返す</option>
+                        <option value="5">5 回</option>
+                    </select>
+                </div>
+                <div class="config-group">
+                    <label>🎙️ 音の感知しやすさ</label>
+                    <select id="config-mic-sensitivity">
+                        <option value="low" selected>ひかえめ (誤反応しにくい)</option>
+                        <option value="normal">ふつう</option>
+                        <option value="high">たかめ (小さな音も拾う)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="editor-container">
+                <div class="editor-header">
+                    <label style="font-weight: bold; color: #444; font-size: 1.1rem;">⑤ 音符ブロックをならべよう！</label>
+                    <button class="btn-clear" onclick="clearAllBlocks()">🗑️ がくふをぜんぶ消す</button>
+                </div>
+                <div class="block-buttons">
+                    <button id="btn-add-tan" class="block-btn btn-tan" onclick="addBlock(1, 'タン', '♩')">♩ タン</button>
+                    <button id="btn-add-tata" class="block-btn btn-tata" onclick="addBlock(1, 'タタ', '♪♪')">♪♪ タタ</button>
+                    <button id="btn-add-un" class="block-btn btn-un" onclick="addBlock(1, 'ウン', '𝄽')">𝄽 ウン</button>
+                </div>
+
+                <div id="editor-status-msg">計算中...</div>
+                <div id="preview-lane" class="preview-lane"></div>
+            </div>
+        </div>
+
+        <button id="start-btn" onclick="startGame()">このがくふで レッスンスタート！</button>
+    </div>
+
+    <div id="game-screen">
+        <div class="header-controls">
+            <div id="hud-time-sig" class="hud-text" style="font-size: 1.4rem; color: #6c5ce7;">4/4拍子</div>
+            <button class="control-btn" onclick="stopGame()">スタジオにもどる</button>
+        </div>
+
+        <div class="header-controls" style="margin-bottom: 5px;">
+            <div id="hud-score" class="hud-text" style="font-size: 1.5rem; color: #e67e22;">リズム評価: まだたたいていないよ</div>
+            <div id="hud-info" class="hud-text" style="color: #718093;"></div>
+        </div>
+
+        <div id="character-stage">
+            <div id="chara-body">🐱</div>
+        </div>
+
+        <div id="combo-box">0 連続ピタッと!!</div>
+        <div id="judge-text"></div>
+
+        <div id="score-lane">
+            <div class="staff-line sl1"></div>
+            <div class="staff-line sl2"></div>
+            <div class="staff-line sl3"></div>
+            <div class="staff-line sl4"></div>
+            <div class="staff-line sl5"></div>
+            <div id="time-signature-mark"><span id="ts-top">4</span><span id="ts-bottom">4</span></div>
+            <div id="don-effect">パァン！</div>
+            <div id="target-zone"></div>
+        </div>
+
+        <div class="tap-action-container">
+            <button id="action-tap-btn" class="tap-trigger-btn">👏 ここをたたいてね！<br><span style="font-size:0.9rem; font-weight:normal;">(スペースキーでもたたけます)</span></button>
+        </div>
+    </div>
+
+    <div id="result-screen">
+        <div id="result-status" class="result-status">🎉 レッスンおわり！</div>
+        <div id="result-rank-msg">すばらしいリズム感！</div>
+        <button class="retry-btn" onclick="backToSetup()">もういちど遊ぶ</button>
+    </div>
+
+    <script>
+        let gameActive = false; let animationFrameId = null;
+        let totalNotes = 0; let processedCount = 0; let combo = 0;
+        let bpm = 100; let numerator = 4; let denominator = 4;
+        let perfectCount = 0; let goodCount = 0; let missCount = 0;
+        let audioContext, analyser, dataArray;
+        let lastEnergy = 0; let clapCooldown = 0;
+        let micIgnoreTimeoutTicks = 0; 
+        const scoreLane = document.getElementById('score-lane');
+        const charaBody = document.getElementById('chara-body');
+        const TARGET_X = 120 + 40; 
+        let notesList = []; let barLinesList = [];
+        let gameStartTime = 0;
+        let nextScheduleBeat = 0;
+        let beatsScheduledCount = 0;
+        let totalBeatsToPlay = 0;
+        let charaStateTimeout = null;
+
+        let currentBlocks = [
+            { value: 1, text: 'タン', symbol: '♩', type: 'tan' },
+            { value: 1, text: 'タタ', symbol: '♪♪', type: 'tata' },
+            { value: 1, text: 'タン', symbol: '♩', type: 'tan' },
+            { value: 1, text: 'ウン', symbol: '𝄽', type: 'un' }
+        ];
+
+        window.onload = function() { 
+            onNumeratorChange(); 
+            window.addEventListener('keydown', function(e) {
+                if (e.code === 'Space' || e.keyCode === 32) {
+                    if (gameActive) {
+                        e.preventDefault(); 
+                        micIgnoreTimeoutTicks = 15; 
+                        onClapDetected();   
+                    }
+                }
+            });
+            const tapBtn = document.getElementById('action-tap-btn');
+            tapBtn.addEventListener('mousedown', (e) => { e.preventDefault(); if (gameActive) { micIgnoreTimeoutTicks = 15; onClapDetected(); }});
+            tapBtn.addEventListener('touchstart', (e) => { e.preventDefault(); if (gameActive) { micIgnoreTimeoutTicks = 15; onClapDetected(); }});
+        };
+
+        function onNumeratorChange() { numerator = parseInt(document.getElementById('config-numerator').value); renderBlocks(); }
+        
+        function addBlock(val, txt, sym) {
+            const targetBars = parseInt(document.getElementById('config-bars').value);
+            if (currentBlocks.length >= numerator * targetBars) return;
+            let type = (sym === '♪♪') ? 'tata' : (sym === '𝄽' ? 'un' : 'tan');
+            currentBlocks.push({ value: val, text: txt, symbol: sym, type: type }); renderBlocks();
+        }
+        function removeBlock(index) { currentBlocks.splice(index, 1); renderBlocks(); }
+        function clearAllBlocks() { currentBlocks = []; renderBlocks(); }
+
+        function renderBlocks() {
+            const lane = document.getElementById('preview-lane'); lane.innerHTML = '';
+            const targetBars = parseInt(document.getElementById('config-bars').value);
+            const requiredTotalBeats = numerator * targetBars;
+            
+            currentBlocks.forEach((b, i) => {
+                if (i > 0 && i % numerator === 0) {
+                    const barLine = document.createElement('div'); barLine.className = 'editor-bar-line'; lane.appendChild(barLine);
+                }
+                const div = document.createElement('div'); div.className = 'preview-block';
+                div.innerHTML = `<span>${b.text}</span><span class="symbol">${b.symbol}</span><div class="remove-tag" onclick="removeBlock(${i})">×</div>`;
+                lane.appendChild(div);
+            });
+
+            const msgEl = document.getElementById('editor-status-msg'); 
+            const startBtn = document.getElementById('start-btn');
+            const totalBeats = currentBlocks.length;
+            const btnList = [document.getElementById('btn-add-tan'), document.getElementById('btn-add-tata'), document.getElementById('btn-add-un')];
+
+            if (totalBeats === requiredTotalBeats && totalBeats > 0) {
+                msgEl.innerText = `👏 ぴったり ${targetBars}小節 分おさまりました！`; msgEl.style.color = "#2ed573"; startBtn.disabled = false;
+                btnList.forEach(b => b.disabled = true);
+            } else {
+                let diff = requiredTotalBeats - totalBeats;
+                msgEl.innerText = (totalBeats === 0) ? "さあ、音符をならべよう！" : `⚠️ あと ${diff}拍 分の音符をならべられます`; 
+                msgEl.style.color = (totalBeats === 0) ? "#6c5ce7" : "#ff9f43";
+                startBtn.disabled = true;
+                btnList.forEach(b => b.disabled = false);
+            }
+        }
+function scheduleMetronome(beatCount, time) {
+            if (!audioContext) return;
+            let osc = audioContext.createOscillator(); let gain = audioContext.createGain();
+            let isHeader = (beatCount % numerator === 0);
+            
+            if (isHeader) {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(720, time);
+                osc.frequency.exponentialRampToValueAtTime(480, time + 0.06);
+                gain.gain.setValueAtTime(0.85, time);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.07);
+            } else {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(3200, time);
+                gain.gain.setValueAtTime(0.40, time);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+            }
+            osc.connect(gain); gain.connect(audioContext.destination);
+            osc.start(time); osc.stop(time + 0.08);
+        }
+
+        async function startGame() {
+            gameActive = false; if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            document.querySelectorAll('.note, .bar-line').forEach(n => n.remove());
+            notesList = []; barLinesList = []; combo = 0;
+            perfectCount = 0; goodCount = 0; missCount = 0;
+            document.getElementById('combo-box').style.visibility = 'hidden';
+            resetCharaVisual();
+            micIgnoreTimeoutTicks = 0;
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, latency: 0 }, video: false }).catch(() => null); 
+                if (!audioContext) { audioContext = new (window.AudioContext || window.webkitAudioContext)(); }
+                if (stream) {
+                    analyser = audioContext.createAnalyser(); analyser.fftSize = 256;
+                    audioContext.createMediaStreamSource(stream).connect(analyser);
+                    dataArray = new Uint8Array(analyser.frequencyBinCount);
+                } else { analyser = null; }
+
+                numerator = parseInt(document.getElementById('config-numerator').value);
+                bpm = parseInt(document.getElementById('config-bpm').value);
+                const loopCount = parseInt(document.getElementById('config-loop-count').value);
+                const beatDurationSec = 60 / bpm;
+
+                document.getElementById('ts-top').innerText = numerator;
+                document.getElementById('ts-bottom').innerText = denominator;
+                document.getElementById('hud-time-sig').innerText = `${numerator}/${denominator}拍子 BPM:${bpm}`;
+
+                document.getElementById('setup-screen').style.display = 'none';
+                document.getElementById('result-screen').style.display = 'none';
+                document.getElementById('game-screen').style.display = 'flex';
+
+                processedCount = 0;
+                document.getElementById('hud-score').innerText = `リズム評価: まだたたいていないよ`;
+                document.getElementById('judge-text').innerText = ``;
+
+                totalBeatsToPlay = currentBlocks.length * loopCount;
+                gameStartTime = audioContext.currentTime + 2.0; 
+                nextScheduleBeat = 0; beatsScheduledCount = 0;
+
+                generateCustomScore(loopCount, 240);
+                gameActive = true; 
+                if (analyser) checkAudioLoop();
+                gameLoop();
+            } catch (err) { alert("マイク設定が許可されていないか、エラーが発生しました。"); }
+        }
+
+        function generateCustomScore(loopCount, beatWidth) {
+            let currentOffsetTime = 2.0; 
+            let beatDurationSec = 60 / bpm;
+            createBarLineElement(currentOffsetTime);
+            let beatIndexGlobal = 0;
+            for (let l = 0; l < loopCount; l++) {
+                for (let b = 0; b < currentBlocks.length; b++) {
+                    let block = currentBlocks[b];
+                    if (block.type === 'tan') { createNoteElement(currentOffsetTime, 'clap', '♩'); currentOffsetTime += beatDurationSec; }
+                    else if (block.type === 'un') { createNoteElement(currentOffsetTime, 'rest note-rest', '𝄽'); currentOffsetTime += beatDurationSec; }
+                    else if (block.type === 'tata') {
+                        createNoteElement(currentOffsetTime, 'clap note-tata', '♪');
+                        createNoteElement(currentOffsetTime + (beatDurationSec / 2), 'clap note-tata', '♪');
+                        currentOffsetTime += beatDurationSec;
+                    }
+                    beatIndexGlobal++;
+                    if (beatIndexGlobal % numerator === 0) createBarLineElement(currentOffsetTime);
+                }
+            }
+            totalNotes = notesList.length; document.getElementById('hud-info').innerText = `のこり音符:${totalNotes}こ`;
+        }
+
+        function createNoteElement(t, type, sym) { const el = document.createElement('div'); el.className = `note note-${type}`; el.innerText = sym; scoreLane.appendChild(el); notesList.push({ el: el, targetTime: t, type: type.includes('rest')?'rest':'clap', hit: false }); }
+        function createBarLineElement(t) { const el = document.createElement('div'); el.className = 'bar-line'; scoreLane.appendChild(el); barLinesList.push({ el: el, targetTime: t }); }
+
+        function gameLoop() {
+            if (!gameActive) return;
+            animationFrameId = requestAnimationFrame(gameLoop);
+            let nowAudioTime = audioContext.currentTime;
+            while (beatsScheduledCount < totalBeatsToPlay) {
+                let beatTime = gameStartTime + nextScheduleBeat * (60 / bpm);
+                if (beatTime > nowAudioTime + 0.25) break;
+                scheduleMetronome(beatsScheduledCount, beatTime);
+                nextScheduleBeat++; beatsScheduledCount++;
+            }
+            let elapsedTime = nowAudioTime - (gameStartTime - 2.0); 
+            for (let i = notesList.length - 1; i >= 0; i--) {
+                let note = notesList[i];
+                let currentX = TARGET_X + (note.targetTime - elapsedTime) * 240 / (60 / bpm);
+                note.el.style.left = `${currentX}px`;
+                if (note.targetTime - elapsedTime < -0.15 && !note.hit) {
+                    note.hit = true; processedCount++;
+                    if (note.type === 'clap') { missCount++; showJudge('MISS...', 'miss', ''); breakCombo(); triggerCharaReaction('miss'); }
+                    else { perfectCount++; showJudge('おみごと！', 'perfect', ''); triggerCharaReaction('success'); }
+                    updateHUD();
+                }
+                if (currentX < -60) { note.el.remove(); notesList.splice(i, 1); if (notesList.length === 0 && processedCount >= totalNotes) { gameActive = false; setTimeout(showResult, 500); } }
+            }
+            for (let i = barLinesList.length - 1; i >= 0; i--) {
+                let bar = barLinesList[i];
+                let currentX = TARGET_X + (bar.targetTime - elapsedTime) * 240 / (60 / bpm);
+                bar.el.style.left = `${currentX}px`; if (currentX < -10) { bar.el.remove(); barLinesList.splice(i, 1); }
+            }
+        }
+
+        function checkAudioLoop() {
+            if (!gameActive || !analyser) return; requestAnimationFrame(checkAudioLoop);
+            if (micIgnoreTimeoutTicks > 0) { micIgnoreTimeoutTicks--; return; }
+            analyser.getByteFrequencyData(dataArray);
+            let currentEnergy = 0; for (let i = 12; i < 128; i++) currentEnergy += dataArray[i];
+            currentEnergy /= 116;
+            let energySpike = currentEnergy - lastEnergy;
+            const sens = document.getElementById('config-mic-sensitivity').value;
+            let spikeThreshold = (sens === 'low' ? 55 : (sens === 'high' ? 22 : 38));
+            let volThreshold = (sens === 'low' ? 75 : (sens === 'high' ? 35 : 50));
+            if (energySpike > spikeThreshold && currentEnergy > volThreshold && clapCooldown === 0) { clapCooldown = 14; onClapDetected(); }
+            lastEnergy = currentEnergy; if (clapCooldown > 0) clapCooldown--;
+        }
+
+        function onClapDetected() {
+            const targetZone = document.getElementById('target-zone');
+            targetZone.style.transform = 'scale(1.15)'; setTimeout(() => targetZone.style.transform = 'scale(1)', 60);
+            if (notesList.length === 0) return;
+            let closestNote = null, minDiff = 999, elapsed = audioContext.currentTime - (gameStartTime - 2.0);
+            for (let n of notesList) if (!n.hit) { let d = elapsed - n.targetTime; if (Math.abs(d) < Math.abs(minDiff)) { minDiff = d; closestNote = n; } }
+            if (!closestNote || Math.abs(minDiff) > 0.25) return;
+            closestNote.hit = true; processedCount++;
+            if (closestNote.type === 'clap') {
+                if (Math.abs(minDiff) < 0.05) { perfectCount++; showJudge('ぴったんこ！', 'perfect'); addCombo(); triggerCharaReaction('success'); }
+                else { goodCount++; showJudge('いいね！', 'good', (minDiff < 0 ? 'はやい！' : 'おそい！'), (minDiff < 0 ? 'early-tag' : 'late-tag')); addCombo(); triggerCharaReaction('success'); }
+            } else { missCount++; showJudge('あちゃー！', 'miss', 'ウンだよ！', 'early-tag'); breakCombo(); triggerCharaReaction('miss'); }
+            updateHUD();
+        }
+
+        function triggerCharaReaction(s) {
+            if (charaStateTimeout) clearTimeout(charaStateTimeout);
+            charaBody.innerText = (s === 'success' ? '😸' : '🙀'); charaBody.className = (s === 'success' ? 'jump-success' : 'shock-miss');
+            charaStateTimeout = setTimeout(resetCharaVisual, 320);
+        }
+
+        function resetCharaVisual() { charaBody.innerText = '🐱'; charaBody.className = ''; }
+        function addCombo() { combo++; const box = document.getElementById('combo-box'); if (combo >= 2) { box.innerText = `✨ ${combo} 連続ピタッと!!`; box.style.visibility = 'visible'; } }
+        function breakCombo() { combo = 0; document.getElementById('combo-box').style.visibility = 'hidden'; }
+        function showJudge(text, cls, sub = "", subCls = "") { const j = document.getElementById('judge-text'); j.innerHTML = `<span class="${cls}">${text}</span><span class="sub-judge ${subCls}">${sub}</span>`; }
+        function updateHUD() {
+            let total = perfectCount + goodCount + missCount, ratio = perfectCount / total;
+            document.getElementById('hud-score').innerText = `リズム評価: ${missCount === 0 && ratio > 0.8 ? "⭐ パーフェクト！ ⭐" : (ratio > 0.6 ? "✨ すばらしい！ ✨" : "🎵 レッスン中...")}`;
+            document.getElementById('hud-info').innerText = `のこり:${Math.max(0, totalNotes - processedCount)}こ`;
+        }
+
+        function showResult() {
+            gameActive = false; document.getElementById('game-screen').style.display = 'none'; document.getElementById('result-screen').style.display = 'flex';
+            let total = perfectCount + goodCount + missCount, ratio = perfectCount / total;
+            document.getElementById('result-rank-msg').innerText = ratio > 0.7 ? "👑 神レベル！" : (ratio > 0.4 ? "👍 ナイス演奏！" : "🐱 どんまい！");
+        }
+
+        function stopGame() { gameActive = false; document.querySelectorAll('.note, .bar-line').forEach(n => n.remove()); backToSetup(); }
+        function backToSetup() {
+            gameActive = false;
+            document.getElementById('game-screen').style.display = 'none'; 
+            document.getElementById('result-screen').style.display = 'none'; 
+            document.getElementById('setup-screen').style.display = 'flex'; 
+            renderBlocks();
+        }
+    </script>
+</body>
+</html>
