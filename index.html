@@ -541,7 +541,7 @@ function playEndSound() {
             if (notesList.length === 0) return;
             let closestNote = null, minDiff = 999, elapsed = audioContext.currentTime - (gameStartTime - 2.0);
             for (let n of notesList) if (!n.hit) { let d = elapsed - n.targetTime; if (Math.abs(d) < Math.abs(minDiff)) { minDiff = d; closestNote = n; } }
-            if (!closestNote || Math.abs(minDiff) > 0.25) return;
+            if (!closestNote || Math.abs(minDiff) > 0.3) return;　//許容の範囲👀
             
             closestNote.hit = true;
             closestNote.el.remove(); // 叩けた音符を画面から消す
