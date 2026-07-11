@@ -563,7 +563,7 @@ function onClapDetected() {
     const j = document.getElementById('judge-text'); // ★ここを修正して定義を追加
 
     if (closestNote.type === 'clap') {
-        if (Math.abs(minDiff) < 0.07) { // 判定の甘さ
+        if (Math.abs(minDiff) < 0.09) { // 判定の甘さ💛
             perfectCount++; 
             spawnStars(200, 150); 
             j.innerHTML = `<span class="perfect">ぴったんこ！<br>⭐⭐⭐</span>`;
