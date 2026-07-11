@@ -603,22 +603,34 @@ function onClapDetected() {
 
         //ランダムで追加しいたもの
 function generateRandomScore() {
-    clearAllBlocks(); // 一旦リセット
+    clearAllBlocks();
     const targetBars = parseInt(document.getElementById('config-bars').value);
     const totalBeats = numerator * targetBars;
+
+    // 定義を明確に分けることで undefined を防ぎます
     const options = [
-        { val: 1, txt: 'タン', sym: '♩', type: 'tan' },
-        { val: 1, txt: 'タタ', sym: '♪♪', type: 'tata' },
-        { val: 1, txt: 'ウン', sym: '𝄽', type: 'un' }
+        { value: 1, text: 'タン', symbol: '♩', type: 'tan' },
+        { value: 1, text: 'タタ', symbol: '♪♪', type: 'tata' },
+        { value: 1, text: 'ウン', symbol: '𝄽', type: 'un' }
     ];
 
     for (let i = 0; i < totalBeats; i++) {
-        // ランダムに音符を選択
-        const rand = options[Math.floor(Math.random() * options.length)];
-        currentBlocks.push({ ...rand });
+        // ランダムにインデックスを選択
+        const randIndex = Math.floor(Math.random() * options.length);
+        const selected = options[randIndex];
+        
+        // オブジェクトをコピーして追加
+        currentBlocks.push({ 
+            value: selected.value, 
+            text: selected.text, 
+            symbol: selected.symbol, 
+            type: selected.type 
+        });
     }
     renderBlocks(); // 画面を更新
 }
+
+        
       // 【差し替え】結果表示の強化
 function showResult() {
     gameActive = false;
