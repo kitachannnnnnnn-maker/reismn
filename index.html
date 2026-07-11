@@ -532,7 +532,7 @@ function playEndSound() {
             const sens = document.getElementById('config-mic-sensitivity').value;
             let spikeThreshold = (sens === 'low' ? 55 : (sens === 'high' ? 22 : 38));
             let volThreshold = (sens === 'low' ? 75 : (sens === 'high' ? 35 : 50));
-            if (energySpike > spikeThreshold && currentEnergy > volThreshold && clapCooldown === 0) { clapCooldown = 8; onClapDetected(); }
+            if (energySpike > spikeThreshold && currentEnergy > volThreshold && clapCooldown === 0) { clapCooldown = 6; onClapDetected(); }
             lastEnergy = currentEnergy; if (clapCooldown > 0) clapCooldown--;
         }
         // 【調整】判定のクールダウンを短くする👀
