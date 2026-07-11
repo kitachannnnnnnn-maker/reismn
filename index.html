@@ -6,10 +6,12 @@
     <title>るんるんリズム「りずむん」 Ver. 1.8</title>
     <style>
         * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-        body {
+       body {
             margin: 0; background-color: #f7f9fc; font-family: 'Helvetica Neue', Arial, sans-serif;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 100vh; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh;
+            overflow-y: auto; /* ここで縦スクロールを許可します */
+            padding: 20px 0;   /* 画面端にくっつかないように余白を追加 */
         }
         #setup-screen, #game-screen, #result-screen {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
